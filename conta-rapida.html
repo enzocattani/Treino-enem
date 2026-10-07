@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>Conta Rápida</title><meta name="theme-color" content="#141B33"><link rel="icon" href="icon-conta-192.png"><link rel="manifest" href="conta.webmanifest"><link rel="apple-touch-icon" href="icon-conta-192.png">
+<style>
+:root{--bg:#141B33;--card:#1F2850;--gold:#E0B04C;--ok:#34B27B;--bad:#E0553F;--tx:#F2F4FA;--mut:#98A2C3}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:17px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-variant-numeric:tabular-nums}
+#app{max-width:520px;margin:0 auto;min-height:100%;padding:max(14px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+h1{font:700 40px Georgia,serif;margin:8px 0 0;color:var(--gold)}h2{font:700 22px Georgia,serif;margin:0}
+.card{background:var(--card);border-radius:16px;padding:14px 16px}.mut{color:var(--mut);font-size:14px}
+.btn{width:100%;border:0;border-radius:14px;padding:16px;font:700 18px inherit;color:var(--bg);background:var(--gold);cursor:pointer}
+.btn.alt{background:var(--card);color:var(--tx)}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.bar{height:10px;background:#2A3566;border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--gold);transition:width .1s linear}
+.q{font:700 26px/1.3 Georgia,serif;min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px}
+.opt{width:100%;margin:6px 0;padding:18px;border:2px solid #2F3B75;border-radius:14px;background:var(--card);color:var(--tx);font:700 21px inherit;cursor:pointer}
+.opt.ok{background:var(--ok);border-color:var(--ok);color:#fff}.opt.bad{background:var(--bad);border-color:var(--bad);color:#fff;animation:sh .3s}
+@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes pop{50%{transform:scale(1.35)}}.pop{animation:pop .25s}
+.big{font:700 54px Georgia,serif;color:var(--gold);text-align:center;margin:0}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:6px 0}.row .bar{flex:1}
+.combo{color:var(--gold);min-height:24px;text-align:center;font-weight:700}
+</style></head><body><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s),KEY='conta-rapida-v1',R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),P=a=>a[R(0,a.length-1)];
+let S=JSON.parse(localStorage.getItem(KEY)||'null')||{best:0,xp:0,games:0,days:{},min:{},th:{}};
+const sv=()=>localStorage.setItem(KEY,JSON.stringify(S)),day=(d=new Date())=>d.toLocaleDateString('sv');
+let AC,mute=false;const beep=(f,d,t='sine',g=.15)=>{if(mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),v=AC.createGain();o.type=t;o.frequency.value=f;v.gain.value=g;o.connect(v);v.connect(AC.destination);o.start();v.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}};
+const vib=n=>{try{navigator.vibrate&&!mute&&navigator.vibrate(n)}catch(e){}};
+/* ---------- geradores: cada um devolve {q, a (número ou texto), f (formatador), x (explicação), w (erradas opcionais)} ---------- */
+const money=n=>'R$ '+(Number.isInteger(n)?n:n.toFixed(2).replace('.',','));
+const gcd=(a,b)=>b?gcd(b,a%b):a,frac=(n,d)=>{const g=gcd(n,d);return (n/g)+'/'+(d/g)};
+const TEMAS={
+pct:['Porcentagem',L=>{if(L<=2){const p=P([10,20,25,50]),n=20*R(2,10);return{q:`Quanto é ${p}% de ${n}?`,a:p*n/100,x:`${n} × ${p}/100`}}
+ const m=P([5,15,30,35,40,45,60,75]);if(L==3){const n=20*R(3,20);return{q:`Um produto de ${money(n)} tem desconto de ${m}%. Qual o preço final?`,a:n*(100-m)/100,f:money,x:`${n} × ${(100-m)}/100`}}
+ const p=10*R(1,4),q=10*R(1,4),pr=100*R(1,8);return{q:`Um produto de ${money(pr)} teve desconto de ${p}% e depois aumento de ${q}%. Qual o preço final?`,a:pr*(100-p)*(100+q)/10000,f:money,x:`${pr} × ${(100-p)/100} × ${(100+q)/100}`}}],
+r3:['Proporção',L=>{if(L<=2){const u=R(2,9),a=R(2,5),c=a*R(2,4);return{q:`${a} kg custam ${money(u*a)}. Quanto custam ${c} kg?`,a:u*c,f:money,x:`preço do kg = ${u}; ${u} × ${c}`}}
+ if(L==3){const v=R(40,90),h=R(2,4),t=R(5,8);return{q:`Um carro percorre ${v*h} km em ${h} h. Quantos km em ${t} h (mesma velocidade)?`,a:v*t,x:`velocidade = ${v} km/h; ${v} × ${t}`}}
+ const T=12*R(2,6),x=P([2,3,4]),y=P([6,12]);return{q:`${x} operários fazem uma obra em ${T/x} dias. Com ${y} operários, em quantos dias?`,a:T/y,x:`inversa: ${x} × ${T/x} ÷ ${y}`}}],
+med:['Médias',L=>{if(L<=2){const m=R(5,9),a=m+R(-3,3),b=m+R(-3,3),c=m+R(-3,3);return{q:`Qual a média de ${a}, ${b}, ${c} e ${4*m-a-b-c}?`,a:m,x:`soma 4×${m} ÷ 4`}}
+ if(L<=4){let m,n;do{m=R(6,8);n=[R(4,10),R(4,10),R(4,10),R(4,10)]}while(5*m-n.reduce((s,v)=>s+v,0)<0||5*m-n.reduce((s,v)=>s+v,0)>10);const s=n.reduce((a,b)=>a+b,0);return{q:`A média de 5 notas é ${m}. Quatro notas são ${n.join(', ')}. Qual a quinta?`,a:5*m-s,x:`5×${m} − ${s}`}}
+ let x,y,z;do{x=R(2,10);y=R(2,10);z=R(2,10)}while((x+2*y+3*z)%6);return{q:`Média ponderada de ${x} (peso 1), ${y} (peso 2) e ${z} (peso 3)?`,a:(x+2*y+3*z)/6,x:`(${x}+2×${y}+3×${z}) ÷ 6`}}],
+jur:['Juros',L=>{if(L<=2){const C=100*R(1,10),i=P([1,2,5,10]),t=R(2,6);return{q:`${money(C)} a juros simples de ${i}% ao mês por ${t} meses. Qual o montante?`,a:C+C*i*t/100,f:money,x:`${C} + ${C}×${i}%×${t}`}}
+ const m=R(1,10),i=P([10,20]),f=i==10?1.21:1.44;return{q:`${money(100*m)} a juros compostos de ${i}% ao mês por 2 meses. Qual o montante?`,a:Math.round(100*m*f),f:money,x:`${100*m} × ${(1+i/100).toFixed(2).replace('.',',')}²`}}],
+geo:['Geometria',L=>{if(L==1){const a=R(3,12),b=R(2,9);return{q:`Área de um retângulo ${a} × ${b}.`,a:a*b,x:`${a} × ${b}`}}
+ if(L==2){const a=R(3,12),b=R(2,9);return{q:`Perímetro de um retângulo ${a} × ${b}.`,a:2*(a+b),x:`2 × (${a}+${b})`}}
+ if(L==3){const b=2*R(2,8),h=R(3,10);return{q:`Área de um triângulo de base ${b} e altura ${h}.`,a:b*h/2,x:`${b} × ${h} ÷ 2`}}
+ if(L==4){const a=R(2,8),b=R(2,8),c=R(2,8);return{q:`Volume de um bloco ${a} × ${b} × ${c}.`,a:a*b*c,x:`${a} × ${b} × ${c}`}}
+ const r=R(2,8),h=R(2,6);return{q:`Volume de um cilindro de raio ${r} e altura ${h} (use π = 3).`,a:3*r*r*h,x:`3 × ${r}² × ${h}`}}],
+pro:['Probabilidade',L=>{if(L<=2){const t=P([4,5,10,20,25]),a=R(1,t-1);return{q:`Urna com ${a} bola(s) azul(is) e ${t-a} vermelha(s). Probabilidade de sortear azul?`,a:a*100/t,f:v=>v+'%',x:`${a}/${t} = ${a*100/t}%`}}
+ const a=R(2,5),b=R(1,4),t=a+b,n=a*(a-1),d=t*(t-1);return{q:`Urna com ${a} azuis e ${b} vermelha(s). Duas bolas sem reposição: probabilidade de ambas azuis?`,a:frac(n,d),w:[frac(a*a,t*t),frac(a,t),frac(a*(a-1)+1,d),frac(2*a,t*2)],x:`${a}/${t} × ${a-1}/${t-1}`}}],
+fun:['Funções',L=>{if(L==1){const a=R(2,6),b=R(1,9),k=R(2,7);return{q:`f(x) = ${a}x + ${b}. Quanto vale f(${k})?`,a:a*k+b,x:`${a}×${k} + ${b}`}}
+ if(L==2){const a=R(2,6),x=R(2,9),b=R(1,9);return{q:`Resolva ${a}x + ${b} = ${a*x+b}.`,a:x,x:`(${a*x+b} − ${b}) ÷ ${a}`}}
+ if(L==3){const c=R(1,20),k=R(2,8);return{q:`f(x) = x² − ${c}. Quanto vale f(${k})?`,a:k*k-c,x:`${k}² − ${c}`}}
+ let r1=R(1,9),r2=R(1,9);while(r1==r2)r2=R(1,9);const S2=r1+r2,Pr=r1*r2;return L==4?{q:`Soma das raízes de x² − ${S2}x + ${Pr} = 0?`,a:S2,x:`soma = −b/a = ${S2}`}:{q:`Maior raiz de x² − ${S2}x + ${Pr} = 0?`,a:Math.max(r1,r2),x:`raízes ${r1} e ${r2} (soma ${S2}, produto ${Pr})`}}]};
+function gen(){const ks=Object.keys(TEMAS),w=ks.map(k=>{const t=S.th[k];return 1.6-(t&&t.c+t.w>=3?t.c/(t.c+t.w):.5)});let r=Math.random()*w.reduce((a,b)=>a+b,0),j=0;while(r>w[j]&&j<ks.length-1)r-=w[j++];
+ const k=ks[j],L=Math.max(1,Math.min(5,Math.round(G.lvl))),o=TEMAS[k][1](L),f=o.f||(v=>String(v)),ans=f(o.a);let wr=o.w;
+ if(!wr){const s=Math.max(1,Math.round(Math.abs(o.a)*.1)),c=[o.a+s,o.a-s,o.a+2*s,o.a-2*s,o.a+1,o.a-1,o.a*2,o.a+5,o.a+10].filter(v=>v!==o.a&&(o.a<0||v>=0)).map(f);wr=c}
+ wr=[...new Set(wr)].filter(v=>v!=ans).sort(()=>Math.random()-.5).slice(0,3);let n=100;while(wr.length<3&&n--)wr.push(f(o.a+R(3,30)));wr=[...new Set(wr)].slice(0,3);
+ return{k,t:TEMAS[k][0],q:o.q,ans,x:o.x,opts:[...wr,ans].sort(()=>Math.random()-.5)}}
+/* ---------- jogo ---------- */
+let G,TI;const lvlOf=()=>Math.floor(Math.sqrt(S.xp/40))+1,PAT=['Calouro','Cursinho','Veterano','Doutor','Largo São Francisco'];
+function streak(){let s=0,i=S.days[day()]?0:1;for(;i<400;i++){if(S.days[day(new Date(Date.now()-i*864e5))])s++;else break}return s}
+const stars=k=>{const t=S.th[k]||{c:0,w:0},n=t.c+t.w,a=n?t.c/n:0;return n<10?0:a>=.8?3:a>=.65?2:a>=.5?1:0};
+function home(){clearInterval(TI);const m=Math.round(S.min[day()]||0);
+$('#app').innerHTML=`<div class=top><span class=mut>Nível ${lvlOf()} · ${PAT[Math.min(4,Math.floor((lvlOf()-1)/3))]}</span><span class=mut style="cursor:pointer" onclick="mute=!mute;home()">${mute?'🔇':'🔊'}</span></div>
+<h1>Conta Rápida</h1><p class=mut style="margin:0">60 segundos. 3 vidas. Quanto você faz?</p>
+<div class=card><div class=row><span>🏆 Recorde</span><b>${S.best}</b></div><div class=row><span>🔥 Sequência</span><b>${streak()} dia(s)</b></div><div class=row><span>⏱ Hoje</span><b>${m} min</b></div></div>
+<button class=btn id=go>Jogar</button>
+<div class=card><h2 style="font-size:17px;margin-bottom:8px">Mapa de temas</h2>${Object.keys(TEMAS).map(k=>`<div class=row><span>${TEMAS[k][0]}</span><span>${'★'.repeat(stars(k))+'☆'.repeat(3-stars(k))}</span></div>`).join('')}<p class=mut style="margin:6px 0 0">Estrelas aparecem após 10 questões do tema. O jogo puxa mais os temas fracos.</p></div>
+${m>=20?'<div class=card style="border:2px solid var(--gold)">Meta de 20 min cumprida hoje. Volte para as questões do Enem e a redação: Ling, Hum e Redação pesam 2 na USP.</div>':''}`;
+$('#go').onclick=start}
+function start(){G={score:0,combo:0,maxc:0,lives:3,time:60,played:0,lvl:1.5,n:0,ok:0,st:'play'};S.games++;clearInterval(TI);TI=setInterval(()=>{if(G.st!='play')return;G.time-=.1;G.played+=.1;upd();if(G.time<=0)end()},100);next()}
+function next(){G.q=gen();G.t0=Date.now();G.st='play';draw()}
+function draw(){const q=G.q;$('#app').innerHTML=`<div class=top><span id=lv>${'❤️'.repeat(G.lives)+'🖤'.repeat(3-G.lives)}</span><span id=sc>${G.score}</span><span id=tm>${Math.ceil(G.time)}s</span></div>
+<div class=bar><i id=br style="width:${G.time/60*100}%"></i></div><div class=combo id=cb>${G.combo>=3?'🔥 combo '+G.combo:''}</div>
+<div class=card><div class=mut>${q.t}</div><div class=q>${q.q}</div></div><div id=ops>${q.opts.map((o,i)=>`<button class=opt data-i=${i}>${o}</button>`).join('')}</div><div id=fb></div>`;
+document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>ans(+b.dataset.i))}
+function upd(){const t=$('#tm');if(!t)return;t.textContent=Math.max(0,Math.ceil(G.time))+'s';$('#br').style.width=Math.max(0,G.time/60*100)+'%'}
+function ans(i){if(G.st!='play')return;const q=G.q,ok=q.opts[i]==q.ans,b=document.querySelectorAll('.opt'),th=S.th[q.k]=S.th[q.k]||{c:0,w:0};G.n++;
+b.forEach((x,j)=>{if(q.opts[j]==q.ans)x.classList.add('ok');else if(j==i)x.classList.add('bad')});
+if(ok){th.c++;G.ok++;G.combo++;G.maxc=Math.max(G.maxc,G.combo);G.score+=100+10*Math.min(G.combo,20)+Math.max(0,Math.round(50-(Date.now()-G.t0)/100));G.time=Math.min(75,G.time+3+(G.combo%5==0?3:0));G.lvl=Math.min(5.49,G.lvl+.35);
+ beep(520+Math.min(G.combo,10)*60,.12);vib(20);$('#sc').textContent=G.score;$('#sc').classList.add('pop');G.st='wait';setTimeout(next,320)}
+else{th.w++;G.lives--;G.combo=0;G.lvl=Math.max(1,G.lvl-.5);beep(150,.3,'square',.12);vib(120);G.st='fb';$('#lv').textContent='❤️'.repeat(G.lives)+'🖤'.repeat(3-G.lives);
+ $('#fb').innerHTML=`<div class=card style="margin-top:8px">Resposta: <b>${q.ans}</b><br><span class=mut>${q.x}</span></div><button class=btn id=ct>Toque para continuar</button>`;$('#ct').focus();$('#ct').onclick=()=>G.lives<=0?end():next()}
+sv()}
+function end(){if(G.st=='over')return;clearInterval(TI);G.st='over';const rec=G.score>S.best,gap=S.best-G.score;S.xp+=Math.round(G.score/10);if(rec)S.best=G.score;S.days[day()]=(S.days[day()]||0)+1;S.min[day()]=(S.min[day()]||0)+G.played/60;sv();beep(rec?880:330,.4);
+$('#app').innerHTML=`<h2 style="text-align:center;margin-top:10px">${rec?'🏆 Novo recorde!':G.lives<=0?'Fim das vidas':'Tempo esgotado'}</h2><p class=big>${G.score}</p>
+<p class=mut style="text-align:center;margin:0">${rec?'Você superou seu melhor.':`Faltaram só ${gap+1} pontos para o recorde.`}</p>
+<div class=card><div class=row><span>Acertos</span><b>${G.ok}/${G.n}</b></div><div class=row><span>Melhor combo</span><b>${G.maxc}</b></div><div class=row><span>XP</span><b>+${Math.round(G.score/10)}</b></div></div>
+<button class=btn id=again>Jogar de novo</button><button class="btn alt" id=hm>Início</button>`;$('#again').onclick=start;$('#hm').onclick=home;$('#again').focus()}
+document.addEventListener('keydown',e=>{if(G&&G.st=='play'&&/^[1-4]$/.test(e.key))ans(+e.key-1)});
+home();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
